@@ -1,0 +1,1318 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Configuration Management</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/si.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+
+	<body>
+		<div class="reveal">
+			<div class="slides">
+ 
+        <section>
+          <h1>The Design of Infrastructure as Code</h1>
+          <h3>Adam Jacob, CEO, System Initiative</h3>
+          <h4>adam@stalecoffee.org, @adamhjk</h4>
+        </section>
+
+        <section>
+          <h1>Infrastructure as Code</h1>
+          <aside class="notes">
+            <h2>The ability to create/update your business from scratch</h2>
+            <h2>From source control and a data backup</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Configuration Management</h2>
+          <hr/>
+          <h2>Provisioning</h2>
+          <hr/>
+          <h2>Service Oriented Architecture</h2>
+          <hr/>
+          <h2>Data Management</h2>
+          <aside class="notes">
+            <h2>It takes these four things to do that well</h2>
+            <h2>This talk is going to focus on the first two</h2>
+            <h2>But show relevance to the other two</h2>
+          </aside>
+        </section>
+        <section>
+          <ul>
+            <li>Make</li>
+            <li>Cfengine 2</li>
+            <li>ISconf</li>
+            <li>Bcfg2</li>
+            <li>Puppet</li>
+            <li>Chef</li>
+            <li>Docker</li>
+            <li>Ansible</li>
+            <li>Terraform</li>
+            <li>Pulumi</li>
+          </ul>
+        </section>
+
+        <section>
+          <h1>Design</h1>
+          <hr/>
+          The look or function of things
+        </section>
+
+        <section>
+          <h1>Architecture</h1>
+          <hr/>
+          The complex structure of things
+        </section>
+
+        <section>
+          <h1>Architecture</h1>
+          <ol>
+            <li>How the system is broken down into parts</li>
+            <li>Decisions that are hard to change</li>
+          </ol>
+          <small>Martin Fowler, Patterns of Enterprise Architecture</small>
+          <aside class="notes">
+            <h2>By the end of this talk</h2>
+            <h2>Know how these systems are broken down</h2>
+            <h2>What decisions they made that are hard to change</h2>
+            <h2>What those trade-offs are for</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>By the end...</h1>
+          <ul>
+            <li>Know how these tools are broken down</li>
+            <li>What decisions they made, and why</li>
+            <li>Directions for future research</li>
+          </ul>
+        </section>
+
+        <section>
+          <h1>Opinionated</h1>
+          <aside class="notes">
+            <h2>Because otherwise its boring</h2>
+            <h2>Reasonable people might disagree</h2>
+            <h2>But youre stuck with me, so..</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Make</h1>
+          <small>The original configuration management tool</small>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+                CC=gcc
+                CFLAGS=-I.
+                DEPS = hellomake.h
+
+                %.o: %.c $(DEPS)
+                  $(CC) -c -o $@ $< $(CFLAGS)
+
+                hellomake: hellomake.o hellofunc.o 
+                  $(CC) -o hellomake hellomake.o hellofunc.o 
+            </code>
+            <code data-trim data-noescape class="shell">
+              $ make hellomake
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>Targets for every object file, compile with flags and deps</h2>
+            <h2>Make hellomake creates the final binary</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+                CC=gcc
+                CFLAGS=-I.
+                DEPS = hellomake.h
+
+                %.o: %.c $(DEPS)
+                  $(CC) -c -o $@ $< $(CFLAGS)
+
+                hellomake: hellomake.o hellofunc.o 
+                  $(CC) -o hellomake hellomake.o hellofunc.o 
+            </code>
+          </pre>
+          <h2>External DSL</h2>
+          <aside class="notes">
+            <h2>A domain specific language for building software</h2>
+            <h2>Or whatever you can declare a target with</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>External DSL</h1>
+          <hr/>
+          A parsed and interpreted domain specific language; partially unqiue in it not being tied to a host language
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+                CC=gcc
+                CFLAGS=-I.
+                DEPS = hellomake.h
+
+                %.o: %.c $(DEPS)
+                  $(CC) -c -o $@ $< $(CFLAGS)
+
+                hellomake: hellomake.o hellofunc.o 
+                  $(CC) -o hellomake hellomake.o hellofunc.o 
+            </code>
+          </pre>
+          <h2>Imperative</h2>
+          <aside class="notes">
+            <h2>We are telling the system what command to run</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="rust">
+pub fn generate_wire(payload: Vec<u8>, ring_key: Option<&SymKey>) -> Result<Vec<u8>> {
+    let mut wire = Wire::default();
+    if let Some(ring_key) = ring_key {
+        wire.encrypted = Some(true);
+        let (nonce, encrypted_payload) = ring_key.encrypt(&payload)?;
+        wire.nonce = Some(nonce);
+        wire.payload = Some(encrypted_payload);
+    } else {
+        wire.payload = Some(payload);
+    }
+    let mut buf = BytesMut::with_capacity(wire.encoded_len());
+    wire.encode(&mut buf)?;
+    Ok(buf.to_vec())
+}
+            </code>
+          </pre>
+          <h2>Imperative</h2>
+          <aside class="notes">
+            <h2>The vast majority of software is imperatively written</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Imperative</h2>
+          <hr/>
+          Gets out of your way; at the cost of saying every single step.
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape class="shell">
+              $ make hellomake
+            </code>
+          </pre>
+          <h2>Declarative</h2>
+          <aside class="notes">
+            <h2> Make hellomake for me </h2>
+            <h2> I don't care how </h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Declarative</h2>
+          <hr/>
+          Easy to use; say what you want, not how to get it
+        </section>
+
+        <section>
+          <h1>Imperative Inside</h1>
+          <hr/>
+          <h1>Declarative Outside</h1>
+          (and a little inside too)
+        </section>
+
+        <section>
+          <h1>Every tool in this talk is Multi-Paradigm</h1>
+          <aside class="notes">
+            <h2>Every tool we talk about is multi-paradigm here</h2>
+            <h2>If they say they aren't, they're lying</h2>
+            <h2>They become multi-paradigm over time</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+                CC=gcc
+                CFLAGS=-I.
+                DEPS = hellomake.h
+
+                %.o: %.c $(DEPS)
+                  $(CC) -c -o $@ $< $(CFLAGS)
+
+                hellomake: hellomake.o hellofunc.o 
+                  $(CC) -o hellomake hellomake.o hellofunc.o 
+            </code>
+            <code data-trim data-noescape class="shell">
+              $ make hellomake
+            </code>
+          </pre>
+            <h2>What happens if we run it twice, with no outside changes?</h2>
+          <aside class="notes">
+            <h2>If we run it over and over, in same circumstances</h2>
+            <h2>We get the same result</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Idempotent</h1>
+         
+          <pre>
+            <code>
+          x • x = x
+
+          abs(abs(x)) = abs(x)
+            </code>
+          </pre>
+          <h4>Absolute value of -5 is 5</h4>
+          <h4>Therefore abs is idempotent</h4>
+        </section>
+
+        <section>
+          <h1>Idempotent</h2>
+          <hr/>
+          Only does work if it needs to; same input == same output
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+                CC=gcc
+                CFLAGS=-I.
+                DEPS = hellomake.h
+
+                %.o: %.c $(DEPS)
+                  $(CC) -c -o $@ $< $(CFLAGS)
+
+                hellomake: hellomake.o hellofunc.o 
+                  $(CC) -o hellomake hellomake.o hellofunc.o 
+            </code>
+          </pre>
+            <h1>Tracks dependencies</h1>
+          <aside class="notes">
+            <h2>.o files are dependent on .c files</h2>
+            <h2>Hellomake is dependent on hellomake.o and hellofunc.o</h2>
+            <h2>Therefore we must compile hellomake.c and hellofunc.c</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Declaring Dependencies</h1>
+          <hr/>
+          Makes it easier to determine the steps required to accomplish something; theoretically provides parallelism opportunities
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+                CC=gcc
+                CFLAGS=-I.
+                DEPS = hellomake.h
+
+                %.o: %.c $(DEPS)
+                  $(CC) -c -o $@ $< $(CFLAGS)
+
+                hellomake: hellomake.o hellofunc.o 
+                  $(CC) -o hellomake hellomake.o hellofunc.o 
+            </code>
+          </pre>
+            <h1>Side Effects</h1>
+          <aside class="notes">
+            <h2>The c compiler creates object files</h2>
+            <h2>That's a side effect of cc -o</h2>
+            <h2>The operating system cli essentially one giant side effect machine</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Side Effects</h1>
+          <hr/>
+          When a function does something other than return its value; mutates the world outside the function
+          <aside class="notes">
+            <h2>Infrastructure as Code is all about side effects</h2>
+            <h2>By definition, we rely on mutating the world outside the program itself</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Make</h1>
+          <hr>
+          <ol>
+            <li>Good for compiling!</li>
+            <li>Complicated for other things</li>
+            <li>Hard to reason about when things get big</li>
+            <li>Syntax is... opaque</li>
+            <li>Hard to classify behavior differences on different types of system</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Cfengine 2</h1>
+          <small>The most influental of all configuration management systems</small>
+        </section>
+
+        <section>
+          <h1>Mark Burgess</h1>
+          <h2>Computer Immunology, 1998</h2>
+          <a href="http://people.scs.carleton.ca/~soma/biosec/readings/burgess-immunology.pdf">Google "Computer Immunology Paper"</a>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+              control:
+                actionsequence = ( tidy links )
+
+              links:
+                sun4::
+                  /bin -> /usr/bin
+                linux::
+                  /bin -> /opt/bin
+
+              tidy:
+                /tmp  pattern=* age=7 recurse=inf
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>First delete all files in tmp older than 7 days</h2>
+            <h2>Then create symlinks to bin, on both sun4 and linux machines</h2>
+            <h2>Controled by the action sequence</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>External DSL</h2>
+          <hr/>
+          <h2>Declarative</h2>
+          <hr/>
+          <h2>Idempotent</h2>
+          <hr/>
+          <h2>Side Effect Oriented</h2>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+              links:
+                 ...
+ 
+              tidy:
+                 ...
+
+              packages: 
+                 ...
+            </code>
+          </pre>
+          <h2>Grouped by type of action</h2>
+          <hr/>
+          Unique property - ostensibly for efficiency. Lost to history.
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+              control:
+                actionsequence = ( tidy packages links )
+            </code>
+          </pre>
+          <h1>Ordered</h1>
+          <hr/>
+          Order is controlled, because side effects matter
+          <aside class="notes">
+            <h2>Ordered - but not dependent!</h2>
+            <h2>Imagine you link to files installed by packages</h2>
+            <h2>We'll come back to this later, with Puppet and Chef</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Order Matters</h1>
+          <hr/>
+          Side effects rely on each other; two side effects called in different order can mean different results
+          <small>
+            Google "An analysis of RPM Validation Drift"<br/>
+            by John Hart and Jeffrey D'Amelia, Tufts University
+          </small>
+          <aside class="notes">
+            <h2>tl;dr - scramble the order of rpm installs, you get random results</h2>
+            <h2>packages with multiple libraries, different compilers, etc</h2>
+            <h2>it's bad, y'all</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+              control:
+                actionsequence = ( tidy links packages )
+            </code>
+          </pre>
+          <h1>Convergent</h1>
+          <hr/>
+          Run long enough, eventually, the system will conform with the policy. 
+          <aside class="notes">
+            <h2>Run this twice; and links will succeed!</h2>
+            <h2>Convergent behavior!</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Convergent systems are RESILIENT systems</h1>
+          <aside class="notes">
+            <h2>Most failure is transient and in side effects</h2>
+            <h2>Simply running again in some period of time often resolves things</h2>
+            <h2>Your Services should be convergent over things like databases, etc</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="makefile">
+              links:
+                sun4::
+                  /bin -> /usr/bin
+                linux::
+                  /bin -> /opt/bin
+            </code>
+          </pre>
+          <h2>Classification</h2>
+          <aside class="notes">
+            <h2>Cfengine worked by applying policy to classes of systems</h2>
+            <h2>Hard classes, like OS</h2>
+            <h2>User defined "soft" classes</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Classification</h2>
+          <hr/>
+          Different behavior applies to different classes of system; think in groups, not individuals
+        </section>
+
+        <section>
+          <h1>Cfengine</h1>
+          <hr/>
+          <ol>
+            <li>Great for computer labs</li>
+            <li>Harder for complex tasks (clustering)</li>
+            <li>Loss of direct feedback loop</li>
+            <li>Organized by type of action, not domain</li>
+            <li>Hard to scale (by volume and source)</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>ISconf</h1>
+          <small>The lost branch of history</small>
+        </section>
+
+        <section>
+          <h1>Steve Traugott</h1>
+          <small>Google "Why Order Matters: Turing Equivalence in Automated Systems"</small>
+          <small>http://infrastructures.org</small>
+          <aside class="notes">
+            <h2>Deeply influential paper</h2>
+            <h2>Laid out the first model for fully automated infrastructures</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+              cd /tmp
+              wget http://example.com/foo-1.2.tar.gz  
+              isconf start
+              isconf lock just a comment about installing foo
+              isconf snap foo-1.2.tar.gz  
+              isconf exec tar -xzvf foo-1.2.tar.gz 
+              isconf exec make -C foo-1.2 install
+              isconf exec rm -rf foo-1.2.tar.gz foo-1.2
+              isconf ci
+            </code>
+          </pre>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+              isconf start
+              isconf up
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>A journal of commands</h2>
+            <h2>Capturing what you would do</h2>
+            <h2>Replayed across every host</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Imperative</h2>
+          <hr/>
+          <h2>Ordered</h2>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+              cd /tmp
+              wget http://example.com/foo-1.2.tar.gz  
+              isconf start
+              isconf lock just a comment about installing foo
+              isconf snap foo-1.2.tar.gz  
+              isconf exec tar -xzvf foo-1.2.tar.gz 
+              isconf exec make -C foo-1.2 install
+              isconf exec rm -rf foo-1.2.tar.gz foo-1.2
+              isconf ci
+            </code>
+          </pre>
+          <h2>Low Abstraction</h2>
+          Just the commands you would run
+          <aside class="notes">
+            <h2>You will see this again with Dockerfiles</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+              isconf start
+              isconf up
+            </code>
+          </pre>
+          <h2>Congruent</h2>
+          Bit-for-bit identical if the journal is the sole source of change
+        </section>
+
+        <section>
+          <h1>Congruence</h1>
+          <hr/>
+          Fully descriptive baseline; concerned with bit-for-bit state.
+          <aside class="notes">
+            <h2>Docker!</h2>
+            <h2>Ensure policy through strict order of events</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Golden Image</h1>
+          <hr/>
+          The common baseline
+          <aside class="notes">
+            <h2>In practice, you start from a maintained golden image</h2>
+            <h2>The journal can help create it</h2>
+            <h2>Rolling forward, not always replaying</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>ISconf</h1>
+          <hr/>
+          <ol>
+            <li>No policy tracking</li>
+            <li>Hard to know where/why state changed</li>
+            <li>Only allows change through the journal</li>
+            <li>Raw commands mean easy on-ramp</li>
+            <li>Predicted Docker, Ansible, etc.</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Bcfg2</h1>
+          <small>Even no policy is a policy</small>
+        </section>
+
+        <section>
+          <h1>Narayan Desai</h1>
+          <small>Computer labs for science!</small> 
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="xml">
+              &ltPackage name="openssh-server" version="auto" type="deb"/&gt
+              &ltPath name="/etc/motd"&gt Hello from Bcfg2 &lt/Path&gt
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>XML based policy</h2>
+            <h2>With Jinja templates</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Declarative</h2>
+          <hr/>
+          <h2>Ordered</h2>
+          <hr/>
+          <h2>Idempotent</h2>
+          <hr/>
+          <h2>Convergent</h2>
+        </section>
+
+        <section>
+          <h1>Data as Specification</h1>
+          <hr/>
+          Data is the DSL
+          <aside class="notes">
+            <h2>The first to use data as DSL</h2>
+            <h2>Later to be famous with Ansible and Kubernetes</h2>
+            <h2>A pain to read as complexity increases</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="shell">
+Loaded tool drivers:
+ Chkconfig    POSIX        YUM
+
+Phase: initial
+Correct entries:        1
+Incorrect entries:      0
+Total managed entries:  1
+Unmanaged entries:      242
+
+Phase: final
+Correct entries:        1
+Incorrect entries:      0
+Total managed entries:  1
+Unmanaged entries:      242
+            </code>
+          </pre>
+          <h2>Comprehensive Policy</h2>
+          <aside class="notes">
+            <h2>Everything bcfg2 can manage, was managed</h2>
+            <h2>You just may or may not have set a policy</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Bcfg2</h1>
+          <hr/>
+          <ol>
+            <li>First use of Data as DSL</li>
+            <li>Only tool to have comprehensive policy</li>
+            <li>Difficult to perform complex tasks</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Puppet</h1>
+          <small>Manage everything</small>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="puppet">
+exec { 'apt-update':
+  command => '/usr/bin/apt-get update'
+}
+
+package { 'apache2':
+  require => Exec['apt-update'],
+  ensure => installed,
+}
+
+service { 'apache2':
+  require => Package['apache2'],
+  ensure => running,
+}
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>Update the package repo</h2>
+            <h2>Install apache2</h2>
+            <h2>Make sure it is running</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Declarative</h2>
+          <hr/>
+          <h2>Idempotent</h2>
+          <hr/>
+          <h2>Convergent</h2>
+          <hr/>
+          <h2>External DSL</h2>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="puppet">
+package { 'apache2':
+  require => Exec['apt-update'],
+  ensure => installed,
+}
+            </code>
+          </pre>
+          <h2>Resource Abstraction</h2>
+          Named resources, mapped to providers based on facts
+          <aside class="notes">
+            <h2>A big change in design</h2>
+            <h2>Puppet figured a lot out for you</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="puppet">
+exec { 'apt-update':
+  command => '/usr/bin/apt-get update'
+}
+
+package { 'apache2':
+  require => Exec['apt-update'],
+  ensure => installed,
+}
+            </code>
+          </pre>
+          <h2>Dependency Graph</h2>
+          Resources depend on each other, forming a graph
+          <aside class="notes">
+            <h2>Topologically sorted</h2>
+            <h2>Many possible solutions</h2>
+            <h2>Solved critical cfengine problems!</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="puppet">
+node default {
+  class { 'ntp':
+        servers => [
+          'nist-time-server.eoni.com',
+          'nist1-lv.ustiming.org',
+          'ntp-nist.ldsbc.edu'
+        ]
+  }
+}
+            </code>
+          </pre>
+          <h2>Grouped by Domain</h2>
+          <hr/>
+          Resource orientation lets us think in terms of problems, not action type
+          <aside class="notes">
+            <h2>This was a revelation</h2>
+            <h2>Hard to overstate the influence this shift had</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="puppet">
+$binaries = ['facter', 'hiera', 'mco', 'puppet', 'puppetserver']
+
+# function call with lambda:
+$binaries.each |String $binary| {
+  file {"/usr/bin/${binary}":
+    ensure => link,
+    target => "/opt/puppetlabs/bin/${binary}",
+  }
+}
+</code>
+          </pre>
+          <h2>Complex Language</h2>
+          <hr/>
+          DSL grows general purpose features
+          <aside class="notes">
+            <h2>The domain is massive</h2>
+            <h2>The language grows general purpose features</h2>
+            <h2>To enable complex configurations</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Puppet</h1>
+          <hr/>
+          <ol>
+            <li>Resource abstraction changes the game</li>
+            <li>Modules orient toward the domain, not the actions</li>
+            <li>Complex ordering is possible</li>
+            <li>Language designed for the problem, grows in complexity over time</li>
+            <li>Pivotal, remarkable achievement</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Chef</h1>
+          <small>This is just programming</small>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="ruby">
+            execute "apt-get update"
+
+            package "apache2"
+
+            service "apache2" do
+              action [:enable, :start]
+            end 
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>Write code in Ruby</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Declarative</h2>
+          <hr/>
+          <h2>Idempotent</h2>
+          <hr/>
+          <h2>Convergent</h2>
+          <hr/>
+          <h2>Ordered</h2>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="ruby">
+            execute "apt-get update"
+
+            package "apache2"
+
+            service "apache2" do
+              action [:enable, :start]
+            end 
+            </code>
+          </pre>
+          <h2>Internal DSL</h2>
+          A super-set of a host language, designed for the domain
+          <aside class="notes">
+            <h2>Means it is easier to do complex things</h2>
+            <h2>Means it is possible to do things outside the domain</h2>
+            <h2>Gain in power you loose in control</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="ruby">
+            execute "apt-get update"
+
+            package "apache2"
+
+            service "apache2" do
+              action [:enable, :start]
+            end 
+            </code>
+          </pre>
+          <h2>Repeatable</h2>
+          No variation in order meant predictable bugs
+          <aside class="notes">
+            <h2>Predictable order - the order listed</h2>
+            <h2>Puppet was very hard to debug at massive scale of resources</h2>
+            <h2>It's better now with "manifest ordering"</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="ruby">
+graphite_servers = search(:node, 'recipes:"graphite"')
+
+template "/etc/collectd/collectd.conf" do
+    source "collectd.conf.erb"
+    owner "root"
+    group "root"
+    mode 0644
+    notifies :restart, "service[collectd]"
+    variables(
+        :graphite_servers => graphite_servers
+    )
+end
+            </code>
+          </pre>
+          <h2>Search</h2>
+          Made clustering and complex configuration easier
+          <aside class="notes">
+            <h2>Gets a list of services with graphite installed</h2>
+            <h2>Populates a template for collectd with them</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Chef</h1>
+          <hr/>
+          <ol>
+            <li>First internal DSL</li>
+            <li>Good for high complexity</li>
+            <li>Good for high scale</li>
+            <li>A lot of work for just a few nodes</li>
+            <li>Possible to do bad things</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Ansible</h1>
+          <small>This is too damn hard, y'all</small>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="yaml">
+---
+- name: Install ntp
+  yum: name=ntp state=present
+  tags: ntp
+
+- name: Configure ntp file
+  template: src=ntp.conf.j2 dest=/etc/ntp.conf
+  tags: ntp
+  notify: restart ntp
+
+- name: Start the ntp service
+  service: name=ntpd state=started enabled=yes
+  tags: ntp
+            </code>
+          </pre>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+ansible-playbook playbook.yml -f 10
+            </code>
+          </pre>
+          
+          <aside class="notes">
+            <h2>Designed to be quick and easy</h2>
+            <h2>Runs across hosts on demand</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Declarative</h2>
+          <hr/>
+          <h2>Idempotent</h2>
+          <hr/>
+          <h2>Convergent</h2>
+          <hr/>
+          <h2>Ordered</h2>
+          <hr/>
+          <h2>Data as Specification</h2>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+ansible-playbook playbook.yml -f 10
+            </code>
+          </pre>
+          <h2>Push Based</h2>
+          <hr/>
+          Run on demand; much faster feedback loop
+          <aside class="notes">
+            <h2>Good initial UX</h2>
+            <h2>Bad at scale</h2>
+          </aside>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+ansible-playbook playbook.yml -f 10
+            </code>
+          </pre>
+          <h2>Agentless</h2>
+          <hr/>
+          No agents; push the whole program
+          <aside class="notes">
+            <h2>nothing to install on hosts</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Ansible</h1>
+          <hr/>
+          <ol>
+            <li>Focused on fast feedback</li>
+            <li>Very low time to first utility</li>
+            <li>Good for point in time tasks</li>
+            <li>Hard to scale (in code and nodes)</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Docker</h1>
+          <small>Congruence has its Revenge</small>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="dockerfile">
+FROM ubuntu
+RUN apt-get update
+RUN apt-get install -y nginx
+COPY index.html /usr/share/nginx/html/
+ENTRYPOINT [“/usr/sbin/nginx”,”-g”,”daemon off;”]
+EXPOSE 80
+            </code>
+          </pre>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+            $ docker build
+            $ docker run nginx
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>Creates golden images fast</h2>
+            <h2>Low abstraction</h2>
+            <h2>Trivial to share and run</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Imperative</h2>
+          <hr/>
+          <h2>Congruent</h2>
+          <hr/>
+          <h2>Ordered</h2>
+          <hr/>
+          <h2>External DSL</h2>
+          <hr/>
+          <h2>Low Abstraction</h2>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="bash">
+            $ docker run nginx
+            </code>
+          </pre>
+          <h1>Quantum UX Leap</h1>
+          <hr/>
+          Turns out, all we ever wanted was to say this
+        </section>
+
+        <section>
+          <h1>Docker</h1>
+          <hr/>
+          <ol>
+            <li>Trivial barrier to entry</li>
+            <li>Fast feedback</li>
+            <li>Easy to share</li>
+            <li>Hard to manage, maintain, or update</li>
+            <li>No insights in to how things are built</li>
+            <li>Crazy, ridiculous, wonderful first UX</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Terraform</h1>
+          <small>We manage APIs now</small>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="terraform">
+resource "aws_instance" "web" {
+  instance_type = "t2.micro"
+  ami = "${lookup(var.aws_amis, var.aws_region)}"
+  key_name = "${aws_key_pair.auth.id}"
+  connection {
+    user = "ubuntu"
+    host = "${self.public_ip}"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get -y update",
+      "sudo apt-get -y install nginx",
+      "sudo service nginx start",
+    ]
+  }
+}
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>Declarative style language over cloud APIs</h2>
+            <h2>The big shift here was focus - cm principles applied to cloud resources</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Declarative</h2>
+          <hr/>
+          <h2>Idempotent</h2>
+          <hr/>
+          <h2>Convergent</h2>
+          <hr/>
+          <h2>Dependency Graph</h2>
+          <hr/>
+          <h2>External DSL</h2>
+        </section>
+
+        <section>
+          <h2>State</h2>
+          <hr/>
+          Introduces the statefile; since resources can no longer be queried
+        </section>
+
+        <section>
+          <h2>Fixed Abstraction</h2>
+          <hr/>
+          Maps 1:1 to provider APIs
+        </section>
+
+        <section>
+          <h1>Terraform</h1>
+          <hr/>
+          <ol>
+            <li>Uses graphs for parallelism</li>
+            <li>Broad coverage of real APIs</li>
+            <li>Language starts simple, grows to crazy complexity</li>
+            <li>Struggles at scale of codebase</li>
+            <li>Totally leaky</li>
+          </ol>
+          <aside class="notes">
+            <h2>Need to map provider API to syntax</h2>
+            <h2>No useful higher abstractions</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Pulumi</h1>
+          <small>Can we write code again, please?</small>
+        </section>
+
+        <section>
+          <pre>
+            <code data-trim data-noescape data-line-numbers class="typescript">
+let server = new aws.ec2.Instance("si-graphql", {
+    instanceType: size,
+    securityGroups: [ group.name ],
+    ami: ami,
+    keyName: ssh_key.id,
+    userData: userData,
+    tags: {
+      use: "si-graphql",
+    }
+});
+            </code>
+          </pre>
+          <aside class="notes">
+            <h2>Typescript</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Declarative</h2>
+          <hr/>
+          <h2>Idempotent</h2>
+          <hr/>
+          <h2>Convergent</h2>
+          <hr/>
+          <h2>Dependency Graph</h2>
+        </section>
+
+        <section>
+          <h2>Multiple Internal DSLs</h2>
+          <hr/>
+          A single engine, providing multi-language support. 
+          <aside class="notes">
+            <h2>Letting the provisioning blur the lines</h2>
+            <h2>Node/Typescript, Python 3, .Net, Go</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h2>Higher Abstractions</h2>
+          <hr/>
+          Full language abstractions for composition
+        </section>
+
+        <section>
+          <h1>Pulumi</h1>
+          <hr/>
+          <ol>
+            <li>Broad coverage of real APIs</li>
+            <li>Higher abtractions from the languages</li>
+            <li>Multiple internal DSLs</li>
+            <li>Default-to-cloud state handling</li>
+          </ol>
+        </section>
+
+        <section>
+          <h1>Futures</h1>
+        </section>
+
+        <section>
+          <h1>Composition</h1>
+          <aside class="notes">
+            <h2>We can provision things, but we can't compose them</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Feedback Loops</h1>
+          <aside class="notes">
+            <h2>We can have high scalability, or bad feedback loops - is there a best of both?</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Convergent + Congruent</h1>
+          <aside class="notes">
+            <h2>Can we marry convergent configuration with congruent images better?</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Higher Abstractions</h1>
+          <aside class="notes">
+            <h2>Can we build useful, composable higher abstractions?</h2>
+          </aside>
+        </section>
+
+        <section>
+          <h1>Thank You</h1>
+        </section>
+
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+        hash: true,
+        controls: false,
+        progress: false,
+        slideNumber: false,
+        transition: 'none',
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true }
+				]
+			});
+		</script>
+	</body>
+</html>
